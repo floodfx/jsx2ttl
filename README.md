@@ -71,6 +71,7 @@ export default App;
 - [ ] Handle `style` and `className` props properly when converting to TTL
 - [ ] Add support for `Fragment` and `<>` syntax
 - [ ] Publish as a standalone package on npm
+- [ ] Support other TTL-based functions or objects (not just `new Template`)
 
 
 ## Install Dependencies

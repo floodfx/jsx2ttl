@@ -1,7 +1,11 @@
 {
   "name": "jsx2ttl",
-  "module": "src/index.ts",
+  "version": "0.0.1",
+  "description": "Covert JSX to tagged template literal",
+  "module": "src/index.ts",  
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@babel/plugin-transform-react-jsx": "^7.23.4",
@@ -18,6 +22,9 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "go": "rm -rf out && bun run src/direct_plugin.ts"
-  }
+    "go": "rm -rf out && bun run src/direct_plugin.ts",
+    "build": "rm -rf dist && tsc src/index.ts --noEmit false --declaration true --outDir dist --skipLibCheck true"
+  },
+  "author": "Donnie Flood <donnie@floodfx.com>",
+  "license": "MIT"
 }
