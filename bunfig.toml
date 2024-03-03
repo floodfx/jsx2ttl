@@ -1,0 +1,4 @@
+preload = ["./src/plugin/jsx2ttl_plugin.ts"]
+
+[test]
+preload = ["./src/plugin/jsx2ttl_plugin.ts"]

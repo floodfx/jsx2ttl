@@ -1,11 +1,23 @@
 {
   "name": "jsx2ttl",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@babel/core": "^7.24.0",
+    "@babel/plugin-transform-react-jsx": "^7.23.4",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-typescript": "^7.23.3",
+    "@babel/types": "^7.24.0",
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__preset-env": "^7.9.6",
+    "@types/bun": "latest",
+    "@types/react": "^18.2.61",
+    "typescript": "^5.3.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "go": "rm -rf out && bun run src/direct_plugin.ts"
   }
 }
