@@ -10,6 +10,16 @@ That said, you could theoretically use this project to convert JSX into a TTL-ba
 
 This is a [Bun](https://bun.sh) project but the code that does the heavy lifting is not bun-specific and could be used in any project that requires a JSX-to-TTL transpiler. See `src/index.ts` for the main logic.
 
+## NPM Package
+This project is published as an npm package: [jsx2ttl](https://www.npmjs.com/package/jsx2ttl)
+```bash
+bun add jsx2ttl
+```
+or your favorite package manager:
+```bash
+npm install jsx2ttl
+```
+
 ## Example Conversions
 
 ### Pretty simple, JSX with no props:
@@ -70,8 +80,8 @@ export default App;
 - [ ] Test / add support for more JSX features
 - [ ] Handle `style` and `className` props properly when converting to TTL
 - [ ] Add support for `Fragment` and `<>` syntax
-- [ ] Publish as a standalone package on npm
 - [ ] Support other TTL-based functions or objects (not just `new Template`)
+- [x] ~~Publish as a standalone package on npm~~
 
 
 ## Install Dependencies
