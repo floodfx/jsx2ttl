@@ -1,6 +1,6 @@
 {
   "name": "jsx2ttl",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Covert JSX to tagged template literal",
   "module": "src/index.ts",  
   "type": "module",
@@ -25,7 +25,8 @@
   },
   "scripts": {
     "go": "rm -rf out && bun run src/direct_plugin.ts",
-    "build": "rm -rf dist && tsc src/index.ts --noEmit false --declaration true --outDir dist --skipLibCheck true"
+    "build": "rm -rf dist && tsc src/index.ts --noEmit false --declaration true --outDir dist --skipLibCheck true",
+    "prepare": "bun run build"
   },
   "author": "Donnie Flood <donnie@floodfx.com>",
   "license": "MIT"
