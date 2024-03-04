@@ -1,4 +1,4 @@
-preload = ["./src/plugin/jsx2ttl_plugin.ts"]
+preload = ["./src/plugin/bun_register.ts"]
 
 [test]
-preload = ["./src/plugin/jsx2ttl_plugin.ts"]
+preload = ["./src/plugin/bun_register.ts"]

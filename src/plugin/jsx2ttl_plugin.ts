@@ -1,5 +1,5 @@
-import { plugin, type BunPlugin } from "bun";
-import { jsx2ttl } from "..";
+import { type BunPlugin } from "bun";
+import { jsx2ttl } from "../parse";
 
 interface JSX2TTLPluginOptions {
   /**
@@ -27,6 +27,3 @@ export function jsx2ttlPlugin(options: JSX2TTLPluginOptions): BunPlugin {
     },
   };
 }
-
-// load the plugin via bunfig.toml preload
-plugin(jsx2ttlPlugin({ templateImportPath: "../ttl" }));
