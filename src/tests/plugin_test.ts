@@ -23,4 +23,24 @@ test("nested_props", () => {
   expect(App({name: "bar"}).toString()).toMatchSnapshot();
 });
 
+import { SimpleClass } from "../jsx/simple_class";
+test("simple_class", () => {
+  expect(new SimpleClass("world").render().toString()).toMatchSnapshot();
+});
+
+import { ImplementsClass } from "../jsx/implements_class";
+test("implements_class", () => {
+  expect(new ImplementsClass("world").render().toString()).toMatchSnapshot();
+});
+
+import { InheritsClass } from "../jsx/inherits_class";
+test("inherits_class", () => {
+  expect(new InheritsClass("world").render().toString()).toMatchSnapshot();
+});
+
+import { Arrow } from "../jsx/simple_static_arrow";
+test("simple_static_arrow", () => {
+  expect(Arrow().toString()).toMatchSnapshot();
+});
+
 

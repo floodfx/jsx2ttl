@@ -76,11 +76,38 @@ function App(props: {
 export default App;
 ```
 
+## Configuration
+Configuring the plugin is done by passing in settings when adding the plugin to the bun runtime.  For instance you can use `bunfig.toml` to preload the plugin with settings:
+
+bunfig.toml:
+```toml
+preload = ["./src/plugin/register_jsx2ttl.ts"]
+
+[test]
+preload = ["./src/plugin/register_jsx2ttl.ts"]
+```
+
+Then in `./src/plugin/register_jsx2ttl.ts`:
+```typescript
+import { plugin } from "bun";
+import { jsx2ttlPlugin, type JSX2TTLOptions } from "..";
+
+// could read from bunfig.toml or other config file
+const options: JSX2TTLOptions = {
+  importName: "myttl",  
+  importPath: "../ttl", // or "myttl" if a package
+  // other options...
+}
+
+// load the plugin via bunfig.toml preload
+plugin(jsx2ttlPlugin(options));
+```
+
 ## Next Steps
 - [ ] Test / add support for more JSX features
 - [ ] Handle `style` and `className` props properly when converting to TTL
 - [ ] Add support for `Fragment` and `<>` syntax
-- [ ] Support other TTL-based functions or objects (not just `new Template`)
+- [x] ~~Support other TTL-based functions or objects (not just `new Template`)~~
 - [x] ~~Publish as a standalone package on npm~~
 
 
@@ -90,17 +117,10 @@ bun install
 ```
 
 ## Running
-There isn't much to "run" at the moment but you can see run the `go` script which preloads the `jsx2ttlPlugin` into the bun runtime which parses the TSX file before it is imported and converts it into a TTL-based Template object.
-```bash
-bun go
-```
-
-## Testing
-Additionally you can run the tests which also use the `jsx2ttlPlugin` to parse the TSX file before it is imported and converts it into a TTL-based Template object.  These tests are currently pretty simple and use snapshots to compare the output of the transpiled TTL-based Template object.
-
-```bash
-bun test
-```
+There are a couple of scripts you can run to see the project in action.
+ * `bun plugin` - Preloads the `jsx2ttlPlugin` into the bun runtime, which parses the TSX file before it is imported and converts it into a TTL-based Template object.
+ * `bun output` - Outputs the transpiled TTL-based code into `/out` directory for inspection.
+ * `bun test` - Runs `src/tests/plugin_test.ts` which builds and snapshots the transpiled TTL-based code. These
 
 
 ## License
