@@ -1,8 +1,55 @@
 import generate from '@babel/generator';
 import * as parser from '@babel/parser';
 import traverse, { NodePath } from '@babel/traverse';
-import { arrayExpression, callExpression, identifier, importDeclaration, importSpecifier, newExpression, nullLiteral, objectExpression, objectProperty, spreadElement, stringLiteral, type JSXAttribute, type JSXElement, type JSXIdentifier, type JSXMemberExpression, type JSXNamespacedName, type JSXSpreadAttribute, type ObjectExpression } from '@babel/types';
+import { arrayExpression, callExpression, identifier, importDeclaration, importDefaultSpecifier, importSpecifier, memberExpression, newExpression, nullLiteral, objectExpression, objectProperty, spreadElement, stringLiteral, type Identifier, type JSXAttribute, type JSXElement, type JSXIdentifier, type JSXMemberExpression, type JSXNamespacedName, type JSXSpreadAttribute, type Node, type ObjectExpression } from '@babel/types';
 
+export interface JSX2TTLOptions {
+  /**
+   * templateLibDir the relative or absolute path to the `Template` library
+   * e.g. `import { Template } from 'ttl'` => `importPath: 'ttl'`
+   * e.g. `import { Foo } from '../local/dir'` => `importPath: '../local/dir'`
+   */
+  importPath: string;
+
+  /**
+   * importName the name of the import, e.g. `import { Template }` => `importName: 'Template'`
+   */
+  importName: string;
+
+  /**
+   * importAs overrides the name of the import, e.g. `import { Template as MyTemplate }` => `importAs: 'MyTemplate'`
+   * default: undefined
+   */
+  importAs?: string;
+
+  /**
+   * isDefault sets whether to use default imports or named 
+   * e.g. default import: `import Template` => `isDefaultImport: true '`
+   * e.g. named import: `import { Template }` => `isDefaultImport: false`
+   * default: false
+   */
+  isDefaultImport?: boolean;
+
+  /**
+   * When true, the imported object is called as a function without `new` (e.g. `Foo()` instead of `new Foo()`)
+   * default: false
+   */
+  callWithoutNew?: boolean;
+}
+
+type JSXElementParentMetadata = 
+{
+  type: 'function'
+  name: string
+  isArrowFunction: boolean
+} | {
+  type: 'class'
+  name: string
+  interfaces: string[]
+  superClasses: string[]
+} | {
+  type: 'unknown'
+}
 
 /**
  * jsx2ttl converts JSX code to TTL code.  
@@ -13,10 +60,17 @@ import { arrayExpression, callExpression, identifier, importDeclaration, importS
  * `Template` class to the beginning of the code that is generated.
  * 
  * @param jsxCode JSX or TSX code that you want to convert to TTL
- * @param templateLibDir the relative or absolute path to the `Template` library
+ * @param 
  * @returns new code that uses the `Template` class from the `ttl` library
  */
-export function jsx2ttl(jsxCode: string, templateLibDir: string = '../src/ttl') {
+export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
+  const reqOpt: Required<JSX2TTLOptions> = {
+    importPath: options.importPath,
+    importName: options.importName,
+    importAs : options.importAs ?? options.importName,
+    isDefaultImport: options.isDefaultImport ?? false,
+    callWithoutNew: options.callWithoutNew ?? false
+  };
 
   // parse the code into an AST
   const ast = parser.parse(jsxCode, {
@@ -25,10 +79,10 @@ export function jsx2ttl(jsxCode: string, templateLibDir: string = '../src/ttl') 
   });
 
   // create a new ImportDeclaration for the Template class
+  const importSpec = reqOpt.isDefaultImport ? importDefaultSpecifier(identifier(reqOpt.importAs)) : importSpecifier(identifier(reqOpt.importName), identifier(reqOpt.importAs));
   const newImport = importDeclaration(
-    // identifiers are same unless you want to rename the import
-    [importSpecifier(identifier('Template'), identifier('Template'))], 
-    stringLiteral(templateLibDir) // source of the import
+    [importSpec], 
+    stringLiteral(reqOpt.importPath) // source of the import
   );
   // udpate the AST to include the new import statement
   ast.program.body.unshift(newImport);
@@ -40,7 +94,82 @@ export function jsx2ttl(jsxCode: string, templateLibDir: string = '../src/ttl') 
       // process deepest nodes first, then work our back up the tree
       exit(path: NodePath<JSXElement>) {
 
-        const newNode = processJSXElement(path.node);
+        // determine if the parent is a function or class
+        // if it is a function, we want to call the function with the props
+        // if it is a class, we want to call the class constructor with the props, and call the classMethod
+        let parentMetadata: JSXElementParentMetadata = {
+          type: 'unknown'
+        }
+        let parentPath: NodePath<Node> | null = path.parentPath;
+        var maxDepth = 100; // prevent infinite loops
+        while (parentPath && maxDepth-- > 0) {
+          console.log('parentPath:', parentPath.node.type);
+          if (parentPath.isFunctionDeclaration() || parentPath.isFunctionExpression()) {
+            // console.log('The parent is a function name:', parentPath.node.id!.name);
+            parentMetadata = {
+              type: 'function',
+              name: parentPath.node.id!.name,
+              isArrowFunction: false
+            }
+            break;
+          } else if (parentPath.isArrowFunctionExpression()) {
+            console.log('The parent is an arrow function')
+            console.log('The parent is an arrow function', parentPath.parentPath.node);
+            parentMetadata = {
+              type: 'function',
+              name: (parentPath.parentPath.node as any).id?.name,
+              isArrowFunction: true
+            }
+            break;
+          } else if (parentPath.isClassDeclaration() || parentPath.isClassExpression()) {
+            console.log('The parent is a class');
+            const className = parentPath.node.id!.name;
+            console.log(`The parent is a class named ${className}`);
+
+            const superClassExp = parentPath.node.superClass;
+            var superClasses: string[] = [];
+            if (superClassExp) {
+              switch(superClassExp.type) {
+                case 'Identifier':
+                  console.log(`The class ${className} extends ${superClassExp.name}`);
+                  superClasses.push(superClassExp.name);
+                  break;
+                case 'ArrayExpression':
+                  console.log(`The class ${className} extends ${superClassExp}`);
+                  superClasses = superClassExp.elements.map(e => (e as Identifier).name);
+                  break;
+              }
+            }
+
+            const implementedInterfaces = parentPath.node.implements;   
+            var interfaceNames: string[] = [];         
+            if (implementedInterfaces && implementedInterfaces.length > 0) {                
+              interfaceNames = implementedInterfaces.map(i => {
+                switch(i.type) {
+                  case 'ClassImplements':
+                    return i.id.name;
+                  case 'TSExpressionWithTypeArguments':
+                    return (i.expression as Identifier).name;
+                }
+              });
+              // console.log(`class ${className} implements ${interfaceNames.join(', ')}`);
+            }
+
+            parentMetadata = {
+              type: 'class',
+              name: className,
+              interfaces: interfaceNames,
+              superClasses: superClasses
+            }
+            break;
+          } else if (parentPath.isProgram()) {
+            console.log('The parent is the program');
+            break;
+          }
+          parentPath = parentPath.parentPath;
+        }
+
+        const newNode = processJSXElement(path.node, reqOpt, parentMetadata);
         // Replace the current node with the new node
         path.replaceWith(newNode);
 
@@ -60,7 +189,7 @@ export function jsx2ttl(jsxCode: string, templateLibDir: string = '../src/ttl') 
  * @param element the JSXElement node to process
  * @returns a new AST node that is a `new Template` expression
  */
-function processJSXElement(element: JSXElement) {
+function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions>, parentMetadata: JSXElementParentMetadata): Node {
   let statics: string[] = [];
   let dynamics: any[] = [];
 
@@ -69,11 +198,20 @@ function processJSXElement(element: JSXElement) {
 
   // component tags we want to call the function, passing in the props
   if (isComponent(tagName)) {
-    // Call the component function and add its return value to the dynamics array
-    const componentFunction = identifier(tagName);
+    // make a call or new expression to the component function based on the parent metadata
     const props = getProps(element.openingElement.attributes);
-    const callExp = callExpression(componentFunction, [props]);
-    return callExp;
+    if(parentMetadata.type === 'function') {
+      console.log('tagName and parentName should match:', parentMetadata.name, tagName, parentMetadata.name === tagName);
+      const componentFunction = identifier(tagName);
+      const callExp = callExpression(componentFunction, [props]);
+      return callExp;
+    } else if(parentMetadata.type === 'class') {
+      const newExp = newExpression(identifier(tagName), [props]);
+      const callExp = callExpression(memberExpression(newExp, identifier('render')), []);
+      return callExp;
+    } else {
+      throw new Error(`Unknown parentMetadata type: ${(parentMetadata as any).type}`);
+    }
   }
 
   // not a component, so we want to create a new Template instance
@@ -120,7 +258,6 @@ function processJSXElement(element: JSXElement) {
       }
       lastOperationWasDynamic = false;
     } else if (child.type === 'JSXExpressionContainer') {
-      // Dynamic content
       dynamics.push(child.expression);
       lastOperationWasDynamic = true;      
     } else if ((child as any).type === 'NewExpression' || (child as any).type === 'CallExpression'){
@@ -145,16 +282,35 @@ function processJSXElement(element: JSXElement) {
       statics[statics.length-1] += `</${tagName}>`;
     }
   }
+
+  // check invariant that statics should be one more than dynamics
+  if(statics.length !== dynamics.length + 1) {
+    throw new Error(`Statics should have one more items than dynamics so there was a parsing error: statics.length=${statics.length}, dynamics.length=${dynamics.length}.  statics=${JSON.stringify(statics)}, dynamics=${JSON.stringify(dynamics)}`);
+  }
+
+  // if statics is 1, then dynamics should be 0
+  // TODO: in this case, we can do we return a string literal instead of a new Template?
+  // if(statics.length === 1) {
+  //   return stringLiteral(statics[0]);
+  // }
   
-  // transform this JSXElement into a `new Template` node
-  const newNode = newExpression(
-    identifier('Template'), // class name
+  // transform this JSXElement into a tagged template literal call
+  // which can be a call to a function (i.e. myTTLFunc) or a new expression (i.e. new MyTTLClass)
+  if(options.callWithoutNew) {
+    return callExpression(identifier(options.importAs), // function name
     [
       arrayExpression(statics.map(stringLiteral)), // statics
       arrayExpression(dynamics) // dynamics
-    ] // constructor arguments
-  );
-  return newNode;
+    ]);
+  } else {
+    return newExpression(
+      identifier(options.importAs), // class name
+      [
+        arrayExpression(statics.map(stringLiteral)), // statics
+        arrayExpression(dynamics) // dynamics
+      ] // constructor arguments
+    );
+  }  
 }
 
 /**

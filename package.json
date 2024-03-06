@@ -1,6 +1,6 @@
 {
   "name": "jsx2ttl",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Covert JSX to tagged template literal",
   "module": "src/index.ts",  
   "type": "module",
@@ -24,7 +24,8 @@
     "@babel/preset-typescript": "^7.23.3"    
   },
   "scripts": {
-    "go": "rm -rf out && bun run src/direct_plugin.ts",
+    "plugin": "bun run src/direct_plugin.ts",
+    "output": "rm -rf out && bun run src/direct_build.ts",
     "build": "rm -rf dist && tsc src/index.ts --noEmit false --declaration true --outDir dist --skipLibCheck true",
     "prepare": "bun run build"
   },

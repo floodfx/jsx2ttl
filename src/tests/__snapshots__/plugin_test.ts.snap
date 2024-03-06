@@ -14,3 +14,11 @@ exports[`nested_static 1`] = `
 `;
 
 exports[`nested_props 1`] = `"<h1 className="foo">Hello bar. <div>hi 4</div></h1>"`;
+
+exports[`simple_class 1`] = `"<div>Hello, world</div>"`;
+
+exports[`implements_class 1`] = `"<div>Hello, world</div>"`;
+
+exports[`inherits_class 1`] = `"<div>Hello, world</div>"`;
+
+exports[`simple_static_arrow 1`] = `"<p>Me and my Arrow; Straighter than narrow</p>"`;
