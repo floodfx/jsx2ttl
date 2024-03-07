@@ -1,17 +1,17 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`simple_static 1`] = `"<img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson">"`;
-
-exports[`simple_props 1`] = `"<div>hi 11!</div>"`;
+exports[`simple_static 1`] = `"<img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson" />"`;
 
 exports[`nested_static 1`] = `
 "<section>
       <h1>Amazing scientists</h1>
-      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson">
-      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson">
-      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson">
+      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson" />
+      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson" />
+      <img src="https://i.imgur.com/MK3eW3Am.jpg" alt="Katherine Johnson" />
     </section>"
 `;
+
+exports[`simple_props 1`] = `"<div>hi 11!</div>"`;
 
 exports[`nested_props 1`] = `"<h1 className="foo">Hello bar. <div>hi 4</div></h1>"`;
 
@@ -22,3 +22,5 @@ exports[`implements_class 1`] = `"<div>Hello, world</div>"`;
 exports[`inherits_class 1`] = `"<div>Hello, world</div>"`;
 
 exports[`simple_static_arrow 1`] = `"<p>Me and my Arrow; Straighter than narrow</p>"`;
+
+exports[`found_errors_checkbox 1`] = `"<input type="checkbox" checked="true" phx-click="toggle" />"`;

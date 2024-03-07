@@ -43,4 +43,9 @@ test("simple_static_arrow", () => {
   expect(Arrow().toString()).toMatchSnapshot();
 });
 
+import { Checkbox } from "../jsx/found_error_checkbox";
+test("found_errors_checkbox", () => {
+  expect(new Checkbox({checked: true}).render().toString()).toMatchSnapshot();
+});
+
 

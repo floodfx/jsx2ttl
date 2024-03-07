@@ -103,7 +103,7 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
         let parentPath: NodePath<Node> | null = path.parentPath;
         var maxDepth = 100; // prevent infinite loops
         while (parentPath && maxDepth-- > 0) {
-          console.log('parentPath:', parentPath.node.type);
+          // console.log('parentPath:', parentPath.node.type);
           if (parentPath.isFunctionDeclaration() || parentPath.isFunctionExpression()) {
             // console.log('The parent is a function name:', parentPath.node.id!.name);
             parentMetadata = {
@@ -113,8 +113,8 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
             }
             break;
           } else if (parentPath.isArrowFunctionExpression()) {
-            console.log('The parent is an arrow function')
-            console.log('The parent is an arrow function', parentPath.parentPath.node);
+            // console.log('The parent is an arrow function')
+            // console.log('The parent is an arrow function', parentPath.parentPath.node);
             parentMetadata = {
               type: 'function',
               name: (parentPath.parentPath.node as any).id?.name,
@@ -122,20 +122,20 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
             }
             break;
           } else if (parentPath.isClassDeclaration() || parentPath.isClassExpression()) {
-            console.log('The parent is a class');
+            // console.log('The parent is a class');
             const className = parentPath.node.id!.name;
-            console.log(`The parent is a class named ${className}`);
+            // console.log(`The parent is a class named ${className}`);
 
             const superClassExp = parentPath.node.superClass;
             var superClasses: string[] = [];
             if (superClassExp) {
               switch(superClassExp.type) {
                 case 'Identifier':
-                  console.log(`The class ${className} extends ${superClassExp.name}`);
+                  // console.log(`The class ${className} extends ${superClassExp.name}`);
                   superClasses.push(superClassExp.name);
                   break;
                 case 'ArrayExpression':
-                  console.log(`The class ${className} extends ${superClassExp}`);
+                  // console.log(`The class ${className} extends ${superClassExp}`);
                   superClasses = superClassExp.elements.map(e => (e as Identifier).name);
                   break;
               }
@@ -163,7 +163,7 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
             }
             break;
           } else if (parentPath.isProgram()) {
-            console.log('The parent is the program');
+            // console.log('The parent is the program');
             break;
           }
           parentPath = parentPath.parentPath;
@@ -201,7 +201,7 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
     // make a call or new expression to the component function based on the parent metadata
     const props = getProps(element.openingElement.attributes);
     if(parentMetadata.type === 'function') {
-      console.log('tagName and parentName should match:', parentMetadata.name, tagName, parentMetadata.name === tagName);
+      // console.log('tagName and parentName should match:', parentMetadata.name, tagName, parentMetadata.name === tagName);
       const componentFunction = identifier(tagName);
       const callExp = callExpression(componentFunction, [props]);
       return callExp;
@@ -215,7 +215,7 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
   }
 
   // not a component, so we want to create a new Template instance
-  let openingTag = `<${tagName}`;
+  statics.push(`<${tagName}`);
   element.openingElement.attributes.forEach(attr => {
     if (attr.type === 'JSXAttribute') {
       let value = '';
@@ -225,25 +225,38 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
       switch (attr.value.type) {
         case 'StringLiteral':
           value = attr.value.value;
+          statics[statics.length-1] += ` ${attr.name.name}="${value}"`;
           break;
         case 'JSXElement':
         case 'JSXFragment':
+          statics[statics.length-1] += ` ${attr.name.name}="`;
           dynamics.push(attr.value);
+          // close the attribute
+          statics.push(`"`);
           return; // Skip adding this attribute to the opening tag
         case 'JSXExpressionContainer':
+          statics[statics.length-1] += ` ${attr.name.name}="`;
           dynamics.push(attr.value.expression);
+          // close the attribute
+          statics.push(`"`);
           return; // Skip adding this attribute to the opening tag
         default:
           throw new Error(`Unknown JSXAttribute value type: ${(attr.value as any).type}`);
       }
-      // TODO this can't be right, as for JSXElements, JSXFragment, and JSXExpressionContainer, we want to add to dynamics      
-      openingTag += ` ${attr.name.name}="${value}"`;
     } else if (attr.type === 'JSXSpreadAttribute') {
-      dynamics.push(attr.argument);
+      // TODO test this...  do we need to loop?
+      statics[statics.length-1] += ' ';
+      dynamics.push(attr.argument);      
     }
   });
-  openingTag += '>';
-  statics.push(openingTag);
+  // close tag
+  // if no children and no closing tag, then close the tag
+  if (element.children.length === 0 && !element.closingElement) {
+    statics[statics.length-1] += ' />';
+  } else {
+    statics[statics.length-1] += '>';
+  }
+  
 
   // next we want to process the children of the element
   let lastOperationWasDynamic = false; // keep track of whether the last operation was dynamic or static
@@ -285,7 +298,7 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
 
   // check invariant that statics should be one more than dynamics
   if(statics.length !== dynamics.length + 1) {
-    throw new Error(`Statics should have one more items than dynamics so there was a parsing error: statics.length=${statics.length}, dynamics.length=${dynamics.length}.  statics=${JSON.stringify(statics)}, dynamics=${JSON.stringify(dynamics)}`);
+    throw new Error(`Statics should have one more items than dynamics so there was a parsing error: statics.length=${statics.length}, dynamics.length=${dynamics.length}.  \n\nstatics=${JSON.stringify(statics)}, \n\ndynamics=${JSON.stringify(dynamics)}`);
   }
 
   // if statics is 1, then dynamics should be 0
