@@ -1,6 +1,6 @@
 {
   "name": "jsx2ttl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Covert JSX to tagged template literal",
   "module": "src/index.ts",  
   "type": "module",
