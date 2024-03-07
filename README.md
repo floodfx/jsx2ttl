@@ -103,7 +103,10 @@ const options: JSX2TTLOptions = {
 plugin(jsx2ttlPlugin(options));
 ```
 
+
+
 ## Next Steps
+- [ ] Fix the `jsx2ttl/dist` import from other projects
 - [ ] Test / add support for more JSX features
 - [x] ~~Handle `style` and `className` props properly when converting to TTL~~
 - [ ] Add support for `Fragment` and `<>` syntax

@@ -7,3 +7,9 @@ bun.lockb
 tsconfig.json
 
 out/
+
+src/
+
+*.tgz
+
+bunfig.toml
