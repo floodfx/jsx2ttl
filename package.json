@@ -25,7 +25,7 @@
   },
   "scripts": {
     "plugin": "bun run src/direct_plugin.ts",
-    "output": "rm -rf out && bun run src/direct_build.ts",
+    "direct": "rm -rf out && bun run src/direct_build.ts",
     "build": "rm -rf dist && tsc src/index.ts --noEmit false --declaration true --outDir dist --skipLibCheck true",
     "prepare": "bun run build"
   },

@@ -1,7 +1,7 @@
 import generate from '@babel/generator';
 import * as parser from '@babel/parser';
 import traverse, { NodePath } from '@babel/traverse';
-import { arrayExpression, callExpression, identifier, importDeclaration, importDefaultSpecifier, importSpecifier, memberExpression, newExpression, nullLiteral, objectExpression, objectProperty, spreadElement, stringLiteral, type Identifier, type JSXAttribute, type JSXElement, type JSXIdentifier, type JSXMemberExpression, type JSXNamespacedName, type JSXSpreadAttribute, type Node, type ObjectExpression } from '@babel/types';
+import { arrayExpression, callExpression, identifier, importDeclaration, importDefaultSpecifier, importSpecifier, memberExpression, newExpression, nullLiteral, objectExpression, objectProperty, spreadElement, stringLiteral, type Expression, type Identifier, type JSXAttribute, type JSXElement, type JSXIdentifier, type JSXMemberExpression, type JSXNamespacedName, type JSXSpreadAttribute, type Node, type ObjectExpression, type SpreadElement } from '@babel/types';
 
 export interface JSX2TTLOptions {
   /**
@@ -35,9 +35,18 @@ export interface JSX2TTLOptions {
    * default: false
    */
   callWithoutNew?: boolean;
+
+  /**
+   * Use parentMetadata to determine if tagged template literal (TTL) call should have additional arguments
+   * beyond the statics and dynamics arrays.  This is useful when your TTL function or class constructor
+   * takes additional arguments beyond the statics and dynamics arrays.  
+   * @param parentMetadata metadata about the parent of the JSXElement
+   * @returns array of additional arguments to pass to the TTL function or class constructor
+   */
+  callWithAdditionalArgsFn?: (parentMetadata: JSXElementParentMetadata) => (SpreadElement | Expression)[];
 }
 
-type JSXElementParentMetadata = 
+export type JSXElementParentMetadata = 
 {
   type: 'function'
   name: string
@@ -69,7 +78,8 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
     importName: options.importName,
     importAs : options.importAs ?? options.importName,
     isDefaultImport: options.isDefaultImport ?? false,
-    callWithoutNew: options.callWithoutNew ?? false
+    callWithoutNew: options.callWithoutNew ?? false,
+    callWithAdditionalArgsFn: options.callWithAdditionalArgsFn ?? (() => []),
   };
 
   // parse the code into an AST
@@ -162,10 +172,7 @@ export function jsx2ttl(jsxCode: string, options: JSX2TTLOptions) {
               superClasses: superClasses
             }
             break;
-          } else if (parentPath.isProgram()) {
-            // console.log('The parent is the program');
-            break;
-          }
+          } 
           parentPath = parentPath.parentPath;
         }
 
@@ -201,7 +208,6 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
     // make a call or new expression to the component function based on the parent metadata
     const props = getProps(element.openingElement.attributes);
     if(parentMetadata.type === 'function') {
-      // console.log('tagName and parentName should match:', parentMetadata.name, tagName, parentMetadata.name === tagName);
       const componentFunction = identifier(tagName);
       const callExp = callExpression(componentFunction, [props]);
       return callExp;
@@ -309,19 +315,23 @@ function processJSXElement(element: JSXElement, options: Required<JSX2TTLOptions
   
   // transform this JSXElement into a tagged template literal call
   // which can be a call to a function (i.e. myTTLFunc) or a new expression (i.e. new MyTTLClass)
+  const additionalArgs = options.callWithAdditionalArgsFn(parentMetadata);
   if(options.callWithoutNew) {
     return callExpression(identifier(options.importAs), // function name
-    [
-      arrayExpression(statics.map(stringLiteral)), // statics
-      arrayExpression(dynamics) // dynamics
-    ]);
+      [
+        arrayExpression(statics.map(stringLiteral)), // statics
+        arrayExpression(dynamics), // dynamics
+        ...additionalArgs
+      ]
+    );
   } else {
     return newExpression(
       identifier(options.importAs), // class name
       [
         arrayExpression(statics.map(stringLiteral)), // statics
-        arrayExpression(dynamics) // dynamics
-      ] // constructor arguments
+        arrayExpression(dynamics), // dynamics
+        ...additionalArgs
+      ]
     );
   }  
 }
