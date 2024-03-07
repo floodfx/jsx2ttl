@@ -10,12 +10,16 @@ export function jsx2ttlPlugin(options: JSX2TTLOptions): BunPlugin {
     setup(build) {
       build.onLoad({ filter: /\.(jsx|tsx)$/ }, async (args) => {
         const file = Bun.file(args.path);
-        const newCode = await jsx2ttl(await file.text(), options);
-
-        return {
-          contents: newCode,
-          loader: args.loader,
-        };
+        try {
+          const newCode = await jsx2ttl(await file.text(), options);
+            return {
+            contents: newCode,
+            loader: args.loader,
+          };
+        } catch (e) { 
+          console.error(`Error processing file at:\n\t"${args.path}"\n\t${e}`);
+          throw e;
+        }        
       });
     },
   };
