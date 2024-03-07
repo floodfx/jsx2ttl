@@ -105,7 +105,7 @@ plugin(jsx2ttlPlugin(options));
 
 ## Next Steps
 - [ ] Test / add support for more JSX features
-- [ ] Handle `style` and `className` props properly when converting to TTL
+- [x] ~~Handle `style` and `className` props properly when converting to TTL~~
 - [ ] Add support for `Fragment` and `<>` syntax
 - [x] ~~Support other TTL-based functions or objects (not just `new Template`)~~
 - [x] ~~Publish as a standalone package on npm~~
@@ -119,7 +119,7 @@ bun install
 ## Running
 There are a couple of scripts you can run to see the project in action.
  * `bun plugin` - Preloads the `jsx2ttlPlugin` into the bun runtime, which parses the TSX file before it is imported and converts it into a TTL-based Template object.
- * `bun output` - Outputs the transpiled TTL-based code into `/out` directory for inspection.
+ * `bun direct` - Outputs the transpiled TTL-based code into `/out` directory for inspection.
  * `bun test` - Runs `src/tests/plugin_test.ts` which builds and snapshots the transpiled TTL-based code. These
 
 
