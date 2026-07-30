@@ -1,133 +1,247 @@
 # jsx2ttl
 
-**Warning: Very experimental / proof of concept**
+A fast, flexible JSX/TSX-to-Tagged Template Literal transpiler for JavaScript & TypeScript.
 
-Uses Babel to parse JSX into an AST, then converts the AST into a tagged template literal-based `Template` object.
+`jsx2ttl` parses `.jsx` and `.tsx` files into an AST using Babel, then automatically converts JSX elements into Tagged Template Literals (e.g. `` html`<div class="${cls}">...</div>` ``), function calls (e.g. `html(statics, dynamics)`), or `Template` class instances (`new Template(statics, dynamics)`).
 
-I have a LiveView-based project that requires the use of a tagged template literal-based Template object.  For "technical reasons" specific to the LiveView protocol, traditional JSX components (and JSX runtimes) are not compatible.  This project is an attempt to create a JSX-to-TTL transpiler that can be used to convert JSX into a TTL-based Template object that is compatible with LiveView-based projects.
+Works natively in **Node.js**, **Bun**, and **Deno**, and integrates seamlessly into **Babel**, **Vite**, **Webpack**, and **Rollup** build pipelines.
 
-That said, you could theoretically use this project to convert JSX into a TTL-based `Template` object for use in any project that requires a TTL-based functions.
+---
 
-This is a [Bun](https://bun.sh) project but the code that does the heavy lifting is not bun-specific and could be used in any project that requires a JSX-to-TTL transpiler. See `src/index.ts` for the main logic.
+## Key Concept: Bring Your Own TTL Function
 
-## NPM Package
-This project is published as an npm package: [jsx2ttl](https://www.npmjs.com/package/jsx2ttl)
-```bash
-bun add jsx2ttl
+`jsx2ttl` is a **pure compiler plugin**. It transforms JSX syntax into Tagged Template Literals, but does not dictate how template strings are evaluated. 
+
+As a developer, you configure `jsx2ttl` with:
+- `importPath`: The module path or package name containing your TTL function/class.
+- `importName`: The name of the exported function or class.
+- `mode`: The transformation style (`'taggedTemplate'`, `'constructor'`, or `'function'`).
+
+---
+
+## Defining Your TTL Function
+
+Here are examples of TTL functions and classes you can define in your own codebase:
+
+### Example 1: Simple HTML String Tag (`html\`...\``)
+
+For `mode: 'taggedTemplate'`:
+
+```typescript
+// src/ttl.ts
+export function html(statics: TemplateStringsArray, ...dynamics: unknown[]): string {
+  return statics.reduce((result, staticPart, index) => {
+    const dynamicVal = dynamics[index - 1];
+    const strVal = dynamicVal === null || dynamicVal === undefined ? "" : String(dynamicVal);
+    return result + strVal + staticPart;
+  });
+}
 ```
-or your favorite package manager:
+
+**Configuration**:
+```typescript
+{
+  importPath: "./ttl",
+  importName: "html",
+  mode: "taggedTemplate"
+}
+```
+
+**Transpiled Output**:
+```tsx
+// Input JSX:  <div className="card">Hello {props.name}!</div>
+// Output:     html`<div className="card">Hello ${props.name}!</div>`
+```
+
+---
+
+### Example 2: Structured Template Object (`new Template(...)`)
+
+For `mode: 'constructor'` *(default)*:
+
+```typescript
+// src/ttl.ts
+export class Template {
+  constructor(
+    public readonly statics: readonly string[],
+    public readonly dynamics: readonly unknown[]
+  ) {}
+
+  render(): string {
+    return this.statics.reduce((res, s, i) => res + String(this.dynamics[i - 1] ?? "") + s);
+  }
+}
+```
+
+**Configuration**:
+```typescript
+{
+  importPath: "./ttl",
+  importName: "Template",
+  mode: "constructor"
+}
+```
+
+**Transpiled Output**:
+```tsx
+// Input JSX:  <div className="card">Hello {props.name}!</div>
+// Output:     new Template(["<div className=\"card\">Hello ", "!</div>"], [props.name])
+```
+
+---
+
+### Example 3: Integrating Popular Ecosystem Libraries (`lit-html`, `htm`)
+
+You can map JSX directly into third-party template libraries:
+
+```typescript
+// For lit-html
+{
+  importPath: "lit-html",
+  importName: "html",
+  mode: "taggedTemplate"
+}
+```
+
+---
+
+## Installation
+
 ```bash
+# npm
 npm install jsx2ttl
+
+# bun
+bun add jsx2ttl
+
+# pnpm / yarn
+pnpm add jsx2ttl
 ```
 
-## Example Conversions
-
-### Pretty simple, JSX with no props:
-Input JSX:
-```tsx
-// source: https://react.dev/learn/your-first-component
-export default function Profile() {
-  return (
-    <img
-      src="https://i.imgur.com/MK3eW3Am.jpg"
-      alt="Katherine Johnson"
-    />
-  )
-}
-```
-Output TTL-based Template:
+In **Deno**:
 ```typescript
-import { Template } from "../ttl";
-
-export default function Profile() {
-  return new Template(["<img src=\"https://i.imgur.com/MK3eW3Am.jpg\" alt=\"Katherine Johnson\">"], []);
-}
+import { jsx2ttl, babelPluginJsx2Ttl } from "npm:jsx2ttl";
 ```
 
-### More complex, JSX with props and children:
-Input JSX:
-```tsx
-function Foo1(props: {msg: number}) {
-  return <div>hi {props.msg}</div>;
-}
+---
 
-function App(props: {name: string}) {
-  return <h1 className="foo">Hello {props.name}. <Foo1 msg={1+3} /></h1>;
-}
+## Output Modes
 
-export default App;
-```
+`jsx2ttl` supports three output modes:
 
-Output TTL-based Template:
+1. **`mode: 'taggedTemplate'`**: Generates standard Tagged Template Literals: `` html`<div class="${cls}">...</div>` ``.
+2. **`mode: 'constructor'`** *(default)*: Generates `new Template(statics, dynamics)` instances.
+3. **`mode: 'function'`**: Generates function invocations: `html(statics, dynamics)`.
+
+---
+
+## Build Pipeline Integrations
+
+### 1. Direct Compiler API
+
 ```typescript
-import { Template } from "../ttl";
-function Foo1(props: {
-  msg: number;
-}) {
-  return new Template(["<div>hi ", "</div>"], [props.msg]);
+import { jsx2ttl } from "jsx2ttl";
+
+const tsxCode = `
+export function Profile({ name }: { name: string }) {
+  return <div className="profile"><h1>{name}</h1></div>;
 }
-function App(props: {
-  name: string;
-}) {
-  return new Template(["<h1 className=\"foo\">Hello ", ". ", "</h1>"], [props.name, Foo1({
-    msg: 1 + 3
-  })]);
-}
-export default App;
+`;
+
+const result = jsx2ttl(tsxCode, {
+  importPath: "./my-ttl",
+  importName: "html",
+  mode: "taggedTemplate",
+});
+
+console.log(result);
 ```
 
-## Configuration
-Configuring the plugin is done by passing in settings when adding the plugin to the bun runtime.  For instance you can use `bunfig.toml` to preload the plugin with settings:
+---
 
-bunfig.toml:
+### 2. Standard Babel Plugin (Vite / Webpack / Rollup / Node)
+
+Add `babelPluginJsx2Ttl` to your `babel.config.js`:
+
+```javascript
+// babel.config.js
+import { babelPluginJsx2Ttl } from "jsx2ttl";
+
+export default {
+  plugins: [
+    [
+      babelPluginJsx2Ttl,
+      {
+        importPath: "./my-ttl",
+        importName: "html",
+        mode: "taggedTemplate"
+      }
+    ]
+  ]
+};
+```
+
+---
+
+### 3. Bun Plugin (`Bun.build` / `bun test`)
+
+Preload via `bunfig.toml`:
+
 ```toml
-preload = ["./src/plugin/register_jsx2ttl.ts"]
+# bunfig.toml
+preload = ["./src/plugin/bun_register.ts"]
 
 [test]
-preload = ["./src/plugin/register_jsx2ttl.ts"]
+preload = ["./src/plugin/bun_register.ts"]
 ```
 
-Then in `./src/plugin/register_jsx2ttl.ts`:
+Or use in `Bun.build`:
+
 ```typescript
-import { plugin } from "bun";
-import { jsx2ttlPlugin, type JSX2TTLOptions } from "..";
+import { jsx2ttlPlugin } from "jsx2ttl";
 
-// could read from bunfig.toml or other config file
-const options: JSX2TTLOptions = {
-  importName: "myttl",  
-  importPath: "../ttl", // or "myttl" if a package
-  // other options...
-}
-
-// load the plugin via bunfig.toml preload
-plugin(jsx2ttlPlugin(options));
+await Bun.build({
+  entrypoints: ["src/app.tsx"],
+  outdir: "dist",
+  plugins: [
+    jsx2ttlPlugin({
+      importPath: "./my-ttl",
+      importName: "html",
+      mode: "taggedTemplate"
+    })
+  ],
+});
 ```
 
+---
 
+## Supported JSX Features
 
-## Next Steps
-- [ ] Fix the `jsx2ttl/dist` import from other projects
-- [ ] Test / add support for more JSX features
-- [x] ~~Handle `style` and `className` props properly when converting to TTL~~
-- [ ] Add support for `Fragment` and `<>` syntax
-- [x] ~~Support other TTL-based functions or objects (not just `new Template`)~~
-- [x] ~~Publish as a standalone package on npm~~
+- [x] **Full `.jsx` & `.tsx` Parsing**: Full TypeScript interface, generic, and type annotation support.
+- [x] **JSX Fragments (`<></>` & `<React.Fragment>`)**: Converted cleanly without unnecessary container tags.
+- [x] **Component `children` Props (`<Foo>bar</Foo>`)**: Nested children are passed automatically as `props.children`.
+- [x] **Member Expression Tags (`<UI.Modal.Header />`)**: Formatted as valid JS member expression calls (`UI.Modal.Header(props)`).
+- [x] **Spread Attributes (`<div {...props} />`)**: Properly balances static and dynamic string arrays.
+- [x] **Boolean Shorthand Attributes (`<input disabled />`)**: Preserves shorthand boolean attributes in generated template strings.
+- [x] **Custom Attribute Transformers**: Use `transformAttribute` to convert `className` to `class` or transform inline `style` objects.
 
+---
 
-## Install Dependencies
+## Development & Testing
+
 ```bash
-bun install
+# Run full test suite (29 unit tests)
+bun test
+
+# Run direct build demo
+bun run direct
+
+# Build production bundle & TypeScript types
+bun run build
 ```
 
-## Running
-There are a couple of scripts you can run to see the project in action.
- * `bun plugin` - Preloads the `jsx2ttlPlugin` into the bun runtime, which parses the TSX file before it is imported and converts it into a TTL-based Template object.
- * `bun direct` - Outputs the transpiled TTL-based code into `/out` directory for inspection.
- * `bun test` - Runs `src/tests/plugin_test.ts` which builds and snapshots the transpiled TTL-based code. These
-
+---
 
 ## License
-MIT
 
-## Author
-[Donnie Flood](https://github.com/floodfx)
+[MIT](LICENSE) © [Donnie Flood](https://github.com/floodfx)

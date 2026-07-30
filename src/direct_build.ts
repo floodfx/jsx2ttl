@@ -23,7 +23,7 @@ const otherTTLOut = await Bun.build({
     "src/jsx/simple_class.tsx",
   ],
   outdir: "out/myttl",
-  plugins: [jsx2ttlPlugin({ importName: "myttl", importPath: "../ttl/myttl", callWithoutNew: true, isDefaultImport: true})],
+  plugins: [jsx2ttlPlugin({ importName: "html", importPath: "../ttl", callWithoutNew: true, isDefaultImport: false})],
 });
 
 console.log(otherTTLOut);
