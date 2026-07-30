@@ -2,7 +2,7 @@
 export default function Profile() {
   return (
     <img
-      src="https://i.imgur.com/MK3eW3Am.jpg"
+      src="/assets/profile.jpg"
       alt="Katherine Johnson"
     />
   )

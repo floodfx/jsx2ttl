@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import type { Component } from "../ttl/ctx";
+export interface Component {
+  render(): any;
+}
 
-
-export class SomeComponent implements Component<any, any, ReactNode> {
+export class SomeComponent implements Component {
   name: string;
   constructor(name: string) {
     this.name = name;

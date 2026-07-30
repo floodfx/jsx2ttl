@@ -1,11 +1,6 @@
-import { BaseJSXComponent } from "../ttl/ctx";
+import { Component } from "react";
 
-export class Hello extends BaseJSXComponent<any> {
-
-  constructor(props: any) {
-    super();
-  }
-
+export class Hello extends Component<any> {
   render() {
     const { name } = this.props;
     return (
@@ -17,12 +12,7 @@ export class Hello extends BaseJSXComponent<any> {
   }
 }
 
-export class Hello3 extends BaseJSXComponent<any> {
-
-  constructor(props: any) {
-    super();
-  }
-
+export class Hello3 extends Component<any> {
   render() {
     const { name } = this.props;
     return (
